@@ -110,24 +110,3 @@ services:
         condition: service_healthy
       ollama-pull:
         condition: service_completed_successfully
-  analyzer:
-    build:
-      context: ./ollama-analyzer
-      dockerfile: Dockerfile
-    container_name: agentic-analyzer
-    restart: "no"
-    environment:
-      - OLLAMA_URL=http://ollama:11434/api/generate
-      - MODEL=qwen2.5:latest
-      - DB_URI=postgresql://superset:superset_password@db:5432/superset
-    volumes:
-      - ./results:/app/results
-    networks:
-      - agentic_network
-    depends_on:
-      db:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-      ollama-pull:
-        condition: service_completed_successfully
