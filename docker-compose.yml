@@ -69,7 +69,9 @@ services:
     command: pull qwen2.5:latest
 
   superset:
-    image: apache/superset:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.superset
     container_name: agentic-superset
     restart: unless-stopped
     ports:
