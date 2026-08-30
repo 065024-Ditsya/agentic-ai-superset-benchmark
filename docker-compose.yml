@@ -69,7 +69,7 @@ services:
     command: pull qwen2.5:latest
 
   superset:
-    image: apache/superset:dockerize
+    image: apache/superset:latest
     container_name: agentic-superset
     restart: unless-stopped
     ports:
@@ -79,8 +79,6 @@ services:
       SQLALCHEMY_DATABASE_URI: postgresql://superset:superset_password@db:5432/superset
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      FLASK_APP: "superset.app:create_app()"
-      SUPERSET_ENV: "production"
     volumes:
       - superset_home:/app/superset_home
     networks:
