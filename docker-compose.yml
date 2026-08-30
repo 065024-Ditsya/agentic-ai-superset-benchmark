@@ -1,0 +1,116 @@
+version: "3.8"
+
+networks:
+  agentic_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  superset_home:
+  ollama_data:
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: agentic-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - agentic_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset -d superset"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: agentic-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - agentic_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: agentic-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - agentic_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:11434/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: agentic-ollama-pull
+    restart: "no"
+    networks:
+      - agentic_network
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "ollama pull qwen2.5:latest"
+
+  superset:
+    image: apache/superset:dockerize
+    container_name: agentic-superset
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: "SUPER_SECRET_PRODUCTION_KEY_AGENTIC_AI"
+      SQLALCHEMY_DATABASE_URI: postgresql://superset:superset_password@db:5432/superset
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - superset_home:/app/superset_home
+    networks:
+      - agentic_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  analyzer:
+    build:
+      context: ./ollama-analyzer
+      dockerfile: Dockerfile
+    container_name: agentic-analyzer
+    restart: "no"
+    environment:
+      - OLLAMA_URL=http://ollama:11434/api/generate
+      - MODEL=qwen2.5:latest
+      - DB_URI=postgresql://superset:superset_password@db:5432/superset
+    volumes:
+      - ./results:/app/results
+    networks:
+      - agentic_network
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
