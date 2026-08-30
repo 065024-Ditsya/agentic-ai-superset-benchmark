@@ -64,9 +64,9 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "ollama pull --host http://ollama:11434 qwen2.5:latest"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    command: pull qwen2.5:latest
 
   superset:
     image: apache/superset:dockerize
