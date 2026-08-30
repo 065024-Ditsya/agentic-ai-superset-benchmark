@@ -73,7 +73,7 @@ services:
     container_name: agentic-superset
     restart: unless-stopped
     ports:
-      - "8088:8088"
+      - "8089:8088"
     environment:
       SUPERSET_SECRET_KEY: "SUPER_SECRET_PRODUCTION_KEY_AGENTIC_AI"
       SQLALCHEMY_DATABASE_URI: postgresql://superset:superset_password@db:5432/superset
